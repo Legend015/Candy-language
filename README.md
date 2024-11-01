@@ -67,6 +67,10 @@ Once the Candy interpreter is running, you can type commands directly into the t
   ```plaintext
   evaluate: (5 + 2) * 3 // Output: Result: 21
   ```
+- **To Exit**: simply write bye or ctrl + c.
+  ```plaintext
+  bye // exit from the code
+  ```
 
 ### Example Session
 
