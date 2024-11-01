@@ -8,58 +8,90 @@
 #include <map>
 #include <unordered_map>
 
-#include <stack>
-#include <unordered_map>
-#include <string>
-#include <cctype>
+std::unordered_map<std::string, std::string> variables;
+
+// Function to set a variable
+void setVariable(const std::string &name, const std::string &value)
+{
+    variables[name] = value;
+}
+
+// Function to get a variable value
+std::string getVariable(const std::string &name)
+{
+    if (variables.find(name) != variables.end())
+    {
+        return variables[name];
+    }
+    throw std::runtime_error("Undefined variable: " + name);
+}
+
+double getValue(const std::string &input)
+{
+    if (variables.find(input) != variables.end())
+    {
+        return std::stod(variables[input]);
+    }
+    return std::stod(input);
+}
 
 class Solution
 {
-    std::stack<double> num; // Change to double to handle floating-point numbers
+    std::stack<double> num;
     std::stack<char> op;
     std::unordered_map<char, int> priority{{'+', 1}, {'-', 1}, {'*', 2}, {'/', 2}};
 
     void eval()
     {
+        if (op.empty())
+            return;
+
         double b = num.top();
-        num.pop(); // Use double
+        num.pop();
+
+        double a = num.top();
+        num.pop();
+
         char c = op.top();
         op.pop();
+
         switch (c)
         {
         case '+':
-            num.top() += b;
+            num.push(a + b);
             break;
         case '-':
-            num.top() -= b;
+            num.push(a - b);
             break;
         case '*':
-            num.top() *= b;
+            num.push(a * b);
             break;
         case '/':
             if (b == 0)
             {
-                throw std::runtime_error("Division by zero"); // Handle division by zero
+                throw std::runtime_error("Division by zero error.");
             }
-            num.top() /= b;
+            num.push(a / b);
             break;
         }
     }
 
 public:
     double calculate(std::string s)
-    { // Change return type to double
+    {
         for (int i = 0, N = s.size(); i < N; ++i)
         {
             if (s[i] == ' ')
                 continue;
+
             if (isdigit(s[i]))
             {
-                double n = 0; // Use double
+                // Parsing numbers
+                double n = 0;
                 while (i < N && isdigit(s[i]))
                     n = n * 10 + s[i++] - '0';
                 if (i < N && s[i] == '.')
-                { // Handle decimal point
+                {
                     ++i;
                     double decimalPlace = 0.1;
                     while (i < N && isdigit(s[i]))
@@ -68,8 +100,23 @@ public:
                         decimalPlace *= 0.1;
                     }
                 }
-                --i; // Decrement to counter the for loop increment
+                --i;
                 num.push(n);
+            }
+            else if (isalpha(s[i]))
+            {
+                // Parsing variable names
+                std::string varName;
+                while (i < N && (isalnum(s[i]) || s[i] == '_'))
+                {
+                    varName += s[i++];
+                }
+                --i;
+
+                // Convert the variable value to a number and push to stack
+                std::string varValueStr = getVariable(varName);
+                double varValue = std::stod(varValueStr);
+                num.push(varValue);
             }
             else if (s[i] == '(')
             {
@@ -77,19 +124,28 @@ public:
             }
             else if (s[i] == ')')
             {
-                while (op.top() != '(')
+                while (!op.empty() && op.top() != '(')
+                {
                     eval();
+                }
                 op.pop();
             }
             else
             {
-                while (op.size() && op.top() != '(' && priority[op.top()] >= priority[s[i]])
+                // Operators (+, -, *, /)
+                while (!op.empty() && op.top() != '(' && priority[op.top()] >= priority[s[i]])
+                {
                     eval();
+                }
                 op.push(s[i]);
             }
         }
-        while (op.size())
+
+        while (!op.empty())
+        {
             eval();
+        }
+
         return num.top();
     }
 };
@@ -113,29 +169,38 @@ void repeat(int times, const std::string &message)
     }
 }
 
-void add(int a, int b)
+void add(const std::string &a, const std::string &b)
 {
-    std::cout << "Result: " << (a + b) << std::endl;
+    double numA = getValue(a);
+    double numB = getValue(b);
+    std::cout << "Result: " << (numA + numB) << std::endl;
 }
 
-void subtract(int a, int b)
+void subtract(const std::string &a, const std::string &b)
 {
-    std::cout << "Result: " << (a - b) << std::endl;
+    double numA = getValue(a);
+    double numB = getValue(b);
+    std::cout << "Result: " << (numA - numB) << std::endl;
 }
 
-void multiply(int a, int b)
+void multiply(const std::string &a, const std::string &b)
 {
-    std::cout << "Result: " << (a * b) << std::endl;
+    double numA = getValue(a);
+    double numB = getValue(b);
+    std::cout << "Result: " << (numA * numB) << std::endl;
 }
 
-void divide(float a, float b)
+void divide(const std::string &a, const std::string &b)
 {
-    if (b == 0)
+
+    double numA = getValue(a);
+    double numB = getValue(b);
+    if (numB == 0)
     {
         std::cout << "We cannot divide by 0." << std::endl;
         return;
     }
-    std::cout << "Result: " << (a / b) << std::endl;
+    std::cout << "Result: " << (numA / numB) << std::endl;
 }
 
 void drawSquare(int side)
@@ -181,10 +246,34 @@ void processCommands()
     while (getline(std::cin, command))
     {
         std::cout << std::endl;
-        if (command.rfind("show:", 0) == 0)
+        if (command.rfind("set ", 0) == 0)
+        {
+            size_t toPos = command.find(" to ");
+            if (toPos != std::string::npos)
+            {
+                std::string varName = command.substr(4, toPos - 4);
+                std::string value = command.substr(toPos + 4);
+                setVariable(varName, value);
+            }
+            else
+            {
+                std::cout << "Invalid syntax for set command. Use: set <variable_name> to <value>" << std::endl;
+            }
+            space();
+        }
+        else if (command.rfind("show: ", 0) == 0)
         {
             std::string message = command.substr(6);
-            show(message);
+
+            if (variables.find(message) != variables.end())
+            {
+                std::cout << getVariable(message) << std::endl;
+            }
+            else
+            {
+                show(message);
+            }
+
             space();
         }
         else if (command.rfind("repeat", 0) == 0)
@@ -203,39 +292,40 @@ void processCommands()
                     break;
                 }
             }
-            std::string message = command.substr(9);
+            std::string message = command.substr(i + 1); // Extract the message after the number
             repeat(times, message);
+
             space();
         }
         else if (command.rfind("add ", 0) == 0)
         {
-            int spacePos = command.find(" to ");
-            int a = std::stoi(command.substr(4, spacePos - 4));
-            int b = std::stoi(command.substr(spacePos + 4));
+            size_t toPos = command.find(" to ");
+            std::string a = command.substr(4, toPos - 4);
+            std::string b = command.substr(toPos + 4);
             add(a, b);
             space();
         }
         else if (command.rfind("subtract ", 0) == 0)
         {
-            int spacePos = command.find(" from ");
-            int b = std::stoi(command.substr(9, spacePos - 9));
-            int a = std::stoi(command.substr(spacePos + 6));
+            size_t fromPos = command.find(" from ");
+            std::string b = command.substr(9, fromPos - 9);
+            std::string a = command.substr(fromPos + 6);
             subtract(a, b);
             space();
         }
         else if (command.rfind("multiply ", 0) == 0)
         {
-            int spacePos = command.find(" by ");
-            int a = std::stoi(command.substr(9, spacePos - 9));
-            int b = std::stoi(command.substr(spacePos + 4));
+            size_t byPos = command.find(" by ");
+            std::string a = command.substr(9, byPos - 9);
+            std::string b = command.substr(byPos + 4);
             multiply(a, b);
             space();
         }
         else if (command.rfind("divide ", 0) == 0)
         {
-            int spacePos = command.find(" by ");
-            float a = std::stof(command.substr(7, spacePos - 7));
-            float b = std::stof(command.substr(spacePos + 4));
+            size_t byPos = command.find(" by ");
+            std::string a = command.substr(7, byPos - 7);
+            std::string b = command.substr(byPos + 4);
             divide(a, b);
             space();
         }
@@ -261,8 +351,16 @@ void processCommands()
         {
             Solution solution;
             std::string expression = command.substr(10);
-            double result = solution.calculate(expression);
-            std::cout << "Result: " << result << std::endl;
+            try
+            {
+                double result = solution.calculate(expression);
+                std::cout << "Result: " << result << std::endl;
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << "Error: " << e.what() << std::endl;
+            }
+
             space();
         }
         else if (command == "bye")
