@@ -1,14 +1,12 @@
 #include <iostream>
 #include <string>
-#include <cctype>  // For character manipulation
-#include <cstdlib> // For random number generation
-#include <vector>  // For using lists (arrays)
+#include <cctype>
+#include <cstdlib>
+#include <vector>
 
 std::string trimLeadingSpaces(const std::string &input)
 {
-    // Find the first non-space character
     size_t start = input.find_first_not_of(" ");
-    // If the string is all spaces or empty, return an empty string
     return (start == std::string::npos) ? "" : input.substr(start);
 }
 
@@ -65,7 +63,7 @@ void ask(const std::string &question)
     std::cout << "You said: " << response << std::endl;
 }
 
-int main()
+void processCommands()
 {
     std::string command;
 
@@ -134,6 +132,10 @@ int main()
             std::cout << "Unknown command. Try commands like 'show', 'add', 'subtract', 'draw square', 'uppercase', 'ask'." << std::endl;
         }
     }
+}
 
+int main()
+{
+    processCommands();
     return 0;
 }
